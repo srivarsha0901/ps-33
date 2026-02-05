@@ -1,8 +1,9 @@
 {
   "name": "newbiz-ai-toolkit",
-  "private": true,
   "version": "0.0.0",
+  "private": true,
   "type": "module",
+  "main": "index.js",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
@@ -10,13 +11,17 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "axios": "^1.11.0",
     "clsx": "^2.1.1",
     "framer-motion": "^10.16.4",
+    "grapesjs": "^0.22.14",
     "lucide-react": "^0.263.1",
+    "pdfjs-dist": "^5.4.624",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-router-dom": "^6.30.1"
+    "react-router-dom": "^6.30.1",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@types/react": "^18.2.15",

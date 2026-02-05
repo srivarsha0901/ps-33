@@ -7,6 +7,15 @@ const generateToken = (userId) => {
 
 exports.signup = async (req, res) => {
   try {
+    // Check if MongoDB is connected
+    const mongoose = require("mongoose");
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({ 
+        message: "Database service unavailable. Please ensure MongoDB is running and connected.",
+        error: "MongoDB not connected"
+      });
+    }
+
     const { fullName, email, password, confirmPassword } = req.body;
 
     if (!fullName || !email || !password || !confirmPassword) {
@@ -35,12 +44,24 @@ exports.signup = async (req, res) => {
     });
   } catch (error) {
     console.error("Signup Error:", error);
-    res.status(500).json({ message: "Server error." });
+    res.status(500).json({ 
+      message: "Server error.",
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };
 
 exports.login = async (req, res) => {
   try {
+    // Check if MongoDB is connected
+    const mongoose = require("mongoose");
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({ 
+        message: "Database service unavailable. Please ensure MongoDB is running and connected.",
+        error: "MongoDB not connected"
+      });
+    }
+
     const { email, password } = req.body;
 
     const user = await User.findOne({ email });
@@ -61,7 +82,10 @@ exports.login = async (req, res) => {
     });
   } catch (error) {
     console.error("Login Error:", error);
-    res.status(500).json({ message: "Server error." });
+    res.status(500).json({ 
+      message: "Server error.",
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };
 

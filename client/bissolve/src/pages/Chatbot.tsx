@@ -1,117 +1,200 @@
-import React, { useState, useRef, useEffect } from "react"
-import axios from "axios"
-import { Send } from "lucide-react"
-import clsx from "clsx"
+import React, { useState, useEffect, useRef } from "react";
+import axios from "axios";
+import ChatbotHero from "./ChatbotHero";
+import "./Chatbot.css";
 
-type Message = {
-  from: "user" | "bot"
-  text: string
+interface Message {
+  sender: "user" | "bot";
+  text: string;
+  timestamp: Date;
 }
 
-const suggestions = [
-  "How do I grow my startup?",
-  "Give me a marketing strategy for a new product.",
-  "What’s a good business name for a tech company?",
-  "Explain how to pitch to investors.",
-]
-
-const Chatbot: React.FC = () => {
-  const [messages, setMessages] = useState<Message[]>([])
-  const [input, setInput] = useState("")
-  const [loading, setLoading] = useState(false)
-  const chatEndRef = useRef<HTMLDivElement | null>(null)
+export default function Chatbot() {
+  const [open, setOpen] = useState(false);
+  const [input, setInput] = useState("");
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [isTyping, setIsTyping] = useState(false);
+  const [darkMode, setDarkMode] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
 
   useEffect(() => {
-    scrollToBottom()
-  }, [messages])
+    scrollToBottom();
+  }, [messages]);
 
-  const sendMessage = async (msg?: string) => {
-    const userInput = msg || input.trim()
-    if (!userInput) return
+  // Function to clean and format the bot response
+  const cleanBotResponse = (text: string) => {
+    return text
+      // Remove markdown formatting (but preserve newlines)
+      .replace(/\*/g, '')
+      .replace(/#{1,6}\s/g, '')
+      // Convert markdown bullets to clean bullets
+      .replace(/^\- /gm, '• ')
+      .replace(/\n\- /g, '\n• ')
+      .replace(/^\* /gm, '• ')
+      .replace(/\n\* /g, '\n• ')
+      // Clean up excessive line breaks (3+ becomes 2)
+      .replace(/\n{3,}/g, '\n\n')
+      // Clean up multiple spaces within a line (but preserve newlines)
+      .replace(/[^\S\n]+/g, ' ')
+      .trim();
+  };
 
-    const userMsg: Message = { from: "user", text: userInput }
-    setMessages(prev => [...prev, userMsg])
-    setInput("")
-    setLoading(true)
+  // Function to format text with proper line breaks and bullet points
+  const formatMessage = (text: string) => {
+    const cleaned = cleanBotResponse(text);
+    return cleaned.split('\n').map((line, index) => {
+      if (line.trim() === '') return <br key={index} />;
+      
+      // Style bullet points
+      if (line.trim().startsWith('•')) {
+        return (
+          <div key={index} className="bullet-point">
+            {line.trim()}
+          </div>
+        );
+      }
+      
+      return (
+        <div key={index} className="text-line">
+          {line}
+        </div>
+      );
+    });
+  };
+
+  const sendMessage = async () => {
+    if (!input.trim()) return;
+
+    const userMsg: Message = { sender: "user", text: input, timestamp: new Date() };
+    setMessages((prev) => [...prev, userMsg]);
+    setInput("");
+    setIsTyping(true);
 
     try {
-      const { data } = await axios.post("http://localhost:5000/api/chat", {
-        message: userInput,
-      })
-
-      const botMsg: Message = { from: "bot", text: data.reply }
-      setMessages(prev => [...prev, botMsg])
-    } catch (err) {
-      setMessages(prev => [
-        ...prev,
-        { from: "bot", text: "Something went wrong. Try again later." },
-      ])
-    } finally {
-      setLoading(false)
+      const res = await axios.post("http://localhost:3000/chat", {
+        message: input,
+      });
+      
+      // Simulate typing delay for better UX
+      setTimeout(() => {
+        const botMsg: Message = { 
+          sender: "bot", 
+          text: res.data.reply, 
+          timestamp: new Date() 
+        };
+        setMessages((prev) => [...prev, botMsg]);
+        setIsTyping(false);
+      }, 1500);
+    } catch {
+      setTimeout(() => {
+        const errorMsg: Message = { 
+          sender: "bot", 
+          text: "💼 Sorry, I'm temporarily unavailable. Please try again.", 
+          timestamp: new Date() 
+        };
+        setMessages((prev) => [...prev, errorMsg]);
+        setIsTyping(false);
+      }, 1500);
     }
-  }
+  };
+
+  useEffect(() => {
+    if (open && messages.length === 0) {
+      setTimeout(() => {
+        const welcomeMsg: Message = {
+          sender: "bot",
+          text: "Welcome to BizBot! 💼 Your intelligent business assistant. I'm here to help with business insights, strategies, and solutions. How can I assist you today?",
+          timestamp: new Date(),
+        };
+        setMessages([welcomeMsg]);
+      }, 500);
+    }
+  }, [open]);
+
+  const toggleTheme = () => {
+    setDarkMode(!darkMode);
+  };
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="bg-slate-700 p-4 rounded-lg mb-4 shadow">
-        <h2 className="text-xl font-semibold mb-2">💬 Business Chat Assistant</h2>
-        <div className="flex flex-wrap gap-2">
-          {suggestions.map((s, i) => (
-            <button
-              key={i}
-              onClick={() => sendMessage(s)}
-              className="bg-slate-800 hover:bg-slate-600 text-sm text-white px-3 py-1 rounded-full transition"
-            >
-              {s}
+    <div className="App">
+      <ChatbotHero />
+      
+      <div className={`bizbot-widget ${darkMode ? 'dark-mode' : ''}`}>
+        <div className={`toggle-btn ${open ? 'active' : ''}`} onClick={() => setOpen(!open)}>
+          <div className="btn-icon">
+            {open ? '✕' : '💼'}
+          </div>
+          {!open && <div className="pulse-ring"></div>}
+        </div>
+
+        <div className={`chat-window ${open ? 'open' : ''}`}>
+          <div className="header">
+            <div className="header-content">
+              <div className="bot-avatar">🤖</div>
+              <div className="header-text">
+                <h3>BizBot</h3>
+                <span className="status">● Online</span>
+              </div>
+              <div className="header-controls">
+                <button 
+                  className="theme-toggle" 
+                  onClick={toggleTheme}
+                  title={darkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
+                >
+                  {darkMode ? '☀' : '🌙'}
+                </button>
+              </div>
+            </div>
+            <div className="header-bg"></div>
+          </div>
+          
+          <div className="chat-body">
+            {messages.map((msg, i) => (
+              <div key={i} className={`msg-container ${msg.sender}`}>
+                <div className={`msg ${msg.sender}`}>
+                  <div className="msg-content">
+                    {msg.sender === 'bot' ? formatMessage(msg.text) : msg.text}
+                  </div>
+                  <div className="msg-time">
+                    {msg.timestamp?.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                  </div>
+                </div>
+              </div>
+            ))}
+            
+            {isTyping && (
+              <div className="msg-container bot">
+                <div className="msg bot typing">
+                  <div className="typing-indicator">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                  </div>
+                </div>
+              </div>
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+          
+          <div className="chat-input">
+            <input
+              placeholder="Type your business question..."
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+            />
+            <button onClick={sendMessage} className="send-btn">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path d="M2 21L23 12L2 3V10L17 12L2 14V21Z" fill="currentColor"/>
+              </svg>
             </button>
-          ))}
+          </div>
         </div>
       </div>
-
-      <div className="flex-1 overflow-y-auto bg-slate-800 p-4 rounded-lg space-y-4">
-        {messages.map((msg, index) => (
-          <div
-            key={index}
-            className={clsx(
-              "max-w-[75%] px-4 py-2 rounded-lg whitespace-pre-wrap",
-              msg.from === "user"
-                ? "bg-blue-600 text-white self-end ml-auto"
-                : "bg-slate-700 text-gray-200 self-start mr-auto"
-            )}
-          >
-            {msg.text}
-          </div>
-        ))}
-        {loading && (
-          <div className="bg-slate-700 text-gray-400 px-4 py-2 rounded-lg max-w-[75%] animate-pulse">
-            Typing...
-          </div>
-        )}
-        <div ref={chatEndRef} />
-      </div>
-
-      <div className="mt-4 flex items-center gap-2">
-        <input
-          type="text"
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          onKeyDown={e => e.key === "Enter" && sendMessage()}
-          placeholder="Ask something about business..."
-          className="flex-1 p-2 rounded-lg bg-slate-700 text-white outline-none"
-        />
-        <button
-          onClick={() => sendMessage()}
-          className="bg-primary-500 hover:bg-primary-600 text-white p-2 rounded-lg"
-        >
-          <Send size={20} />
-        </button>
-      </div>
     </div>
-  )
+  );
 }
-
-export default Chatbot

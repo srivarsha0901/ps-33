@@ -46,7 +46,11 @@ const Signup: React.FC = () => {
         navigate("/home") // ✅ go to home on successful signup
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || "Something went wrong")
+      if (err.response?.status === 503) {
+        setError("Database service unavailable. MongoDB is required for authentication. Please ensure MongoDB is running and connected.")
+      } else {
+        setError(err.response?.data?.message || "Something went wrong. Please try again.")
+      }
     }
   }
 
