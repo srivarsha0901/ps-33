@@ -981,31 +981,7 @@ app.use((error, req, res, next) => {
 
 });
 
-app.post("/chat", async (req, res) => {
-  const { message } = req.body;
 
-  try {
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-
-    // System prompt to give the bot a "BizBot" personality
-    const prompt = `
-      You are BizBot, an elite AI Business Consultant. 
-      Provide strategic, data-driven, and actionable advice.
-      Keep responses professional yet approachable. 
-      Use bullet points for clarity when providing steps or lists.
-      
-      User Question: ${message}
-    `;
-
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    
-    res.json({ reply: response.text() });
-  } catch (error) {
-    console.error("Chat Error:", error);
-    res.status(500).json({ reply: "I'm having trouble analyzing that business query right now." });
-  }
-});
 
 // 404 handler
 
